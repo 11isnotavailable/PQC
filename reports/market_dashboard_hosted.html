@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PQ-BitEdu Dashboard</title>
+  <style>
+    :root {
+      --bg: #0f1116;
+      --panel: rgba(20, 24, 34, 0.9);
+      --panel-2: rgba(16, 19, 28, 0.92);
+      --line: rgba(111, 125, 156, 0.22);
+      --text: #eef3ff;
+      --muted: #9ba9c9;
+      --accent: #49d17d;
+      --accent-2: #6fd3ff;
+      --warn: #ffb454;
+      --danger: #ff7c7c;
+      --card-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+      --radius: 22px;
+      --font-sans: "Segoe UI Variable", "Aptos", "Trebuchet MS", sans-serif;
+      --font-mono: "Cascadia Code", "Consolas", monospace;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, rgba(75, 209, 125, 0.15), transparent 28%),
+        radial-gradient(circle at 90% 20%, rgba(111, 211, 255, 0.12), transparent 24%),
+        linear-gradient(180deg, #0b0d12 0%, #10131c 100%);
+      font-family: var(--font-sans);
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--line) 1px, transparent 1px);
+      background-size: 34px 34px;
+      opacity: 0.35;
+      pointer-events: none;
+    }
+    .shell {
+      position: relative;
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 26px;
+    }
+    .hero {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 20px;
+      padding: 24px 28px;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: calc(var(--radius) + 4px);
+      background: linear-gradient(135deg, rgba(22, 30, 42, 0.94), rgba(15, 19, 28, 0.86));
+      box-shadow: var(--card-shadow);
+      backdrop-filter: blur(14px);
+    }
+    .hero h1 {
+      margin: 0 0 8px;
+      font-size: clamp(28px, 4vw, 42px);
+      letter-spacing: 0.02em;
+    }
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      max-width: 720px;
+      line-height: 1.55;
+    }
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-content: flex-start;
+    }
+    .chip {
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .grid-row {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin-bottom: 18px;
+    }
+    .agent-card {
+      position: relative;
+      overflow: hidden;
+      padding: 20px;
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, var(--panel), var(--panel-2));
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: var(--card-shadow);
+      min-height: 248px;
+    }
+    .agent-card::after {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 6px;
+      background: var(--role-color, var(--accent));
+    }
+    .agent-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: flex-start;
+      margin-bottom: 14px;
+    }
+    .agent-name {
+      margin: 0 0 6px;
+      font-size: 22px;
+    }
+    .agent-role {
+      display: inline-flex;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background: rgba(255,255,255,0.08);
+      color: var(--role-color, var(--accent));
+    }
+    .agent-balance {
+      text-align: right;
+    }
+    .agent-balance strong {
+      display: block;
+      font-size: 30px;
+      line-height: 1;
+    }
+    .agent-balance span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .objective {
+      margin: 0 0 14px;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 14px;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .stat {
+      padding: 12px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .stat-label {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 6px;
+    }
+    .stat-value {
+      font-family: var(--font-mono);
+      font-size: 18px;
+    }
+    .last-action {
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(73, 209, 125, 0.08);
+      border: 1px solid rgba(73, 209, 125, 0.12);
+      color: #d6ffe4;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .center-stage {
+      display: grid;
+      grid-template-columns: minmax(0, 1.8fr) minmax(320px, 0.95fr);
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+    .panel {
+      padding: 20px;
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(17, 22, 31, 0.96), rgba(14, 18, 26, 0.94));
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: var(--card-shadow);
+    }
+    .panel h2 {
+      margin: 0 0 4px;
+      font-size: 22px;
+    }
+    .panel p {
+      margin: 0 0 18px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .chart-frame {
+      width: 100%;
+      aspect-ratio: 16 / 8;
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
+      border: 1px solid rgba(255,255,255,0.06);
+      padding: 14px;
+    }
+    .chart-meta {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .meta-box {
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .meta-box small {
+      display: block;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .meta-box strong {
+      font-family: var(--font-mono);
+      font-size: 18px;
+    }
+    .log-list {
+      display: grid;
+      gap: 10px;
+      max-height: 760px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+    .log-item {
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.035);
+      border: 1px solid rgba(255,255,255,0.05);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+    .log-item .topline {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .kind-trade { border-left: 4px solid var(--accent-2); }
+    .kind-mine { border-left: 4px solid var(--warn); }
+    .kind-cost { border-left: 4px solid var(--danger); }
+    .kind-valuation { border-left: 4px solid var(--accent); }
+    @media (max-width: 1060px) {
+      .center-stage { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 860px) {
+      .grid-row { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 560px) {
+      .shell { padding: 16px; }
+      .hero { padding: 18px; }
+      .agent-balance strong { font-size: 24px; }
+      .stats, .chart-meta { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="hero">
+      <div>
+        <h1>PQ-BitEdu Market Board</h1>
+        <p>多智能体区块链沙盘。上方与下方是不同身份的 Agent 卡片，中间展示模拟币价走势，右侧记录链上交易、矿工耗电、运营开销和阶段性收益变化。</p>
+      </div>
+      <div class="chips" id="chips"></div>
+    </section>
+
+    <section class="grid-row" id="top-row"></section>
+
+    <section class="center-stage">
+      <section class="panel">
+        <h2>模拟单位价值大盘</h2>
+        <p>这里的价格是根据链上活跃度、参与广度和筹码集中度生成的教学型估值，不代表真实市场价格。</p>
+        <div class="chart-frame">
+          <svg id="price-chart" viewBox="0 0 960 420" width="100%" height="100%" preserveAspectRatio="none"></svg>
+        </div>
+        <div class="chart-meta" id="chart-meta"></div>
+      </section>
+      <aside class="panel">
+        <h2>链上日志</h2>
+        <p>这里聚合了交易、挖矿、耗电、日常开销和估值变动。</p>
+        <div class="log-list" id="log-list"></div>
+      </aside>
+    </section>
+
+    <section class="grid-row" id="bottom-row"></section>
+  </div>
+
+  <script>
+    const REPORT = {"title": "PQ-BitEdu Agent Market Dashboard", "mode": "hosted", "model": "deepseek-v4-flash", "rounds": 3, "base_price_yuan": 12.0, "final_price_yuan": 13.29, "price_history": [{"round": -1, "label": "Bootstrap", "price": 12.0}, {"round": 0, "label": "Round 1", "price": 12.55}, {"round": 1, "label": "Round 2", "price": 12.72}, {"round": 2, "label": "Round 3", "price": 13.29}], "round_history": [{"round": 0, "height": 7, "balances": {"maker_mia": 23, "holder_han": 26, "promoter_pia": 26, "miner_1": 325}, "price": 12.55, "mempool_size": 0, "event_count": 21}, {"round": 1, "height": 8, "balances": {"maker_mia": 22, "holder_han": 30, "promoter_pia": 21, "miner_1": 377}, "price": 12.72, "mempool_size": 0, "event_count": 20}, {"round": 2, "height": 9, "balances": {"maker_mia": 20, "holder_han": 27, "promoter_pia": 23, "miner_1": 430}, "price": 13.29, "mempool_size": 0, "event_count": 21}], "summary": {"height": 9, "blocks": 9, "transactions": 11, "mempool_size": 0}, "agents": [{"name": "maker_mia", "role": "market-maker", "objective": "Keep the token circulating with small but regular transfers so the chain stays active.", "prompt": "You are the circulation-focused market maker.\nInspect first when needed, but do not waste tool calls.\nIf your balance is at least 10, prefer sending 3 to 6 tokens to the poorest peer.\nIf balance is below 10, hold or inspect instead of overspending.", "initial_balance": 28, "balance": 20, "sent_transactions": 3, "received_transactions": 3, "tokens_sent": 12, "tokens_received": 35, "fees_paid": 3, "blocks_mined": 0, "mining_rewards": 0, "power_cost_yuan": 0.0, "living_cost_yuan": 3.6, "estimated_value_yuan": 265.8, "estimated_pnl_yuan": -73.8, "net_token_change": -8, "last_action": "maker_mia -> promoter_pia 4 PQC (fee 1)"}, {"name": "holder_han", "role": "conservative-holder", "objective": "Preserve capital while still participating occasionally so the economy does not freeze.", "prompt": "You are a cautious holder.\nPrefer holding most of your tokens.\nOnly send funds when your balance is comfortably above 18, and then send a small amount such as 2 or 3 tokens.\nIf balance is not high, inspect briefly and then use noop.", "initial_balance": 26, "balance": 27, "sent_transactions": 2, "received_transactions": 3, "tokens_sent": 4, "tokens_received": 33, "fees_paid": 2, "blocks_mined": 0, "mining_rewards": 0, "power_cost_yuan": 0.0, "living_cost_yuan": 3.6, "estimated_value_yuan": 358.83, "estimated_pnl_yuan": 43.23, "net_token_change": 1, "last_action": "holder_han -> promoter_pia 2 PQC (fee 1)"}, {"name": "promoter_pia", "role": "community-promoter", "objective": "Create visible on-chain activity and encourage broad participation.", "prompt": "You are the ecosystem promoter.\nFavor visible activity over hoarding.\nIf your balance is at least 8, send 2 to 5 tokens to a peer who has lower balance or seems inactive.\nUse chain or agent inspection before choosing a recipient.", "initial_balance": 24, "balance": 23, "sent_transactions": 3, "received_transactions": 5, "tokens_sent": 10, "tokens_received": 36, "fees_paid": 3, "blocks_mined": 0, "mining_rewards": 0, "power_cost_yuan": 0.0, "living_cost_yuan": 3.6, "estimated_value_yuan": 305.67, "estimated_pnl_yuan": 14.07, "net_token_change": -1, "last_action": "promoter_pia -> maker_mia 3 PQC (fee 1)"}, {"name": "miner_1", "role": "miner", "objective": "Mine every round and confirm pending transfers.", "prompt": "", "initial_balance": 272, "balance": 430, "sent_transactions": 3, "received_transactions": 0, "tokens_sent": 78, "tokens_received": 0, "fees_paid": 3, "blocks_mined": 9, "mining_rewards": 311, "power_cost_yuan": 67.5, "living_cost_yuan": 3.6, "estimated_value_yuan": 5714.7, "estimated_pnl_yuan": 2379.6, "net_token_change": 158, "last_action": "Mined block H9, reward 53 PQC, power cost ¥7.5"}], "logs": [{"tick": 0, "kind": "cost", "agent": "holder_han", "description": "holder_han operating cost ¥1.20"}, {"tick": 0, "kind": "trade", "agent": "holder_han", "description": "holder_han -> promoter_pia 2 PQC (fee 1)"}, {"tick": 0, "kind": "cost", "agent": "maker_mia", "description": "maker_mia operating cost ¥1.20"}, {"tick": 0, "kind": "trade", "agent": "maker_mia", "description": "maker_mia -> promoter_pia 4 PQC (fee 1)"}, {"tick": 0, "kind": "valuation", "agent": "market", "description": "Simulated market value moved to ¥12.55"}, {"tick": 0, "kind": "cost", "agent": "miner_1", "description": "miner_1 operating cost ¥1.20"}, {"tick": 0, "kind": "mine", "agent": "miner_1", "description": "Mined block H1, reward 0 PQC, power cost ¥7.5"}, {"tick": 0, "kind": "mine", "agent": "miner_1", "description": "Mined block H2, reward 0 PQC, power cost ¥7.5"}, {"tick": 0, "kind": "mine", "agent": "miner_1", "description": "Mined block H3, reward 0 PQC, power cost ¥7.5"}, {"tick": 0, "kind": "mine", "agent": "miner_1", "description": "Mined block H4, reward 51 PQC, power cost ¥7.5"}, {"tick": 0, "kind": "mine", "agent": "miner_1", "description": "Mined block H5, reward 51 PQC, power cost ¥7.5"}, {"tick": 0, "kind": "mine", "agent": "miner_1", "description": "Mined block H6, reward 51 PQC, power cost ¥7.5"}, {"tick": 0, "kind": "mine", "agent": "miner_1", "description": "Mined block H7, reward 53 PQC, power cost ¥7.5"}, {"tick": 0, "kind": "trade", "agent": "miner_1", "description": "miner_1 -> maker_mia 28 PQC (fee 1)"}, {"tick": 0, "kind": "trade", "agent": "miner_1", "description": "miner_1 -> holder_han 26 PQC (fee 1)"}, {"tick": 0, "kind": "trade", "agent": "miner_1", "description": "miner_1 -> promoter_pia 24 PQC (fee 1)"}, {"tick": 0, "kind": "cost", "agent": "promoter_pia", "description": "promoter_pia operating cost ¥1.20"}, {"tick": 0, "kind": "trade", "agent": "promoter_pia", "description": "promoter_pia -> holder_han 3 PQC (fee 1)"}, {"tick": 1, "kind": "cost", "agent": "holder_han", "description": "holder_han operating cost ¥1.20"}, {"tick": 1, "kind": "cost", "agent": "maker_mia", "description": "maker_mia operating cost ¥1.20"}, {"tick": 1, "kind": "trade", "agent": "maker_mia", "description": "maker_mia -> holder_han 4 PQC (fee 1)"}, {"tick": 1, "kind": "valuation", "agent": "market", "description": "Simulated market value moved to ¥12.72"}, {"tick": 1, "kind": "cost", "agent": "miner_1", "description": "miner_1 operating cost ¥1.20"}, {"tick": 1, "kind": "mine", "agent": "miner_1", "description": "Mined block H8, reward 52 PQC, power cost ¥7.5"}, {"tick": 1, "kind": "cost", "agent": "promoter_pia", "description": "promoter_pia operating cost ¥1.20"}, {"tick": 1, "kind": "trade", "agent": "promoter_pia", "description": "promoter_pia -> maker_mia 4 PQC (fee 1)"}, {"tick": 2, "kind": "cost", "agent": "holder_han", "description": "holder_han operating cost ¥1.20"}, {"tick": 2, "kind": "trade", "agent": "holder_han", "description": "holder_han -> promoter_pia 2 PQC (fee 1)"}, {"tick": 2, "kind": "cost", "agent": "maker_mia", "description": "maker_mia operating cost ¥1.20"}, {"tick": 2, "kind": "trade", "agent": "maker_mia", "description": "maker_mia -> promoter_pia 4 PQC (fee 1)"}, {"tick": 2, "kind": "valuation", "agent": "market", "description": "Simulated market value moved to ¥13.29"}, {"tick": 2, "kind": "cost", "agent": "miner_1", "description": "miner_1 operating cost ¥1.20"}, {"tick": 2, "kind": "mine", "agent": "miner_1", "description": "Mined block H9, reward 53 PQC, power cost ¥7.5"}, {"tick": 2, "kind": "cost", "agent": "promoter_pia", "description": "promoter_pia operating cost ¥1.20"}, {"tick": 2, "kind": "trade", "agent": "promoter_pia", "description": "promoter_pia -> maker_mia 3 PQC (fee 1)"}]};
+
+    function roleColor(role) {
+      const normalized = String(role || "").toLowerCase();
+      if (normalized.includes("miner")) return "#ffb454";
+      if (normalized.includes("maker")) return "#49d17d";
+      if (normalized.includes("holder")) return "#8fb2ff";
+      if (normalized.includes("promoter")) return "#ff8cc6";
+      return "#6fd3ff";
+    }
+
+    function formatYuan(value) {
+      const sign = value < 0 ? "-" : "";
+      return sign + "¥" + Math.abs(value).toFixed(2);
+    }
+
+    function formatToken(value) {
+      const prefix = value > 0 ? "+" : "";
+      return prefix + value + " PQC";
+    }
+
+    function buildCard(agent) {
+      const card = document.createElement("article");
+      card.className = "agent-card";
+      card.style.setProperty("--role-color", roleColor(agent.role));
+      card.innerHTML = `
+        <div class="agent-head">
+          <div>
+            <h3 class="agent-name">${agent.name}</h3>
+            <span class="agent-role">${agent.role}</span>
+          </div>
+          <div class="agent-balance">
+            <strong>${agent.balance} PQC</strong>
+            <span>当前余额</span>
+          </div>
+        </div>
+        <p class="objective">${agent.objective}</p>
+        <div class="stats">
+          <div class="stat">
+            <div class="stat-label">估值</div>
+            <div class="stat-value">${formatYuan(agent.estimated_value_yuan)}</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">估值收益</div>
+            <div class="stat-value">${formatYuan(agent.estimated_pnl_yuan)}</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">净增持</div>
+            <div class="stat-value">${formatToken(agent.net_token_change)}</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">交易次数</div>
+            <div class="stat-value">${agent.sent_transactions} / ${agent.received_transactions}</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">耗电成本</div>
+            <div class="stat-value">${formatYuan(agent.power_cost_yuan)}</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">日常开销</div>
+            <div class="stat-value">${formatYuan(agent.living_cost_yuan)}</div>
+          </div>
+        </div>
+        <div class="last-action">${agent.last_action}</div>
+      `;
+      return card;
+    }
+
+    function renderCards() {
+      const agents = [...REPORT.agents];
+      const top = agents.slice(0, Math.ceil(agents.length / 2));
+      const bottom = agents.slice(Math.ceil(agents.length / 2));
+      const topRow = document.getElementById("top-row");
+      const bottomRow = document.getElementById("bottom-row");
+      top.forEach(agent => topRow.appendChild(buildCard(agent)));
+      bottom.forEach(agent => bottomRow.appendChild(buildCard(agent)));
+    }
+
+    function renderChips() {
+      const chips = document.getElementById("chips");
+      const entries = [
+        `模式: ${REPORT.mode}`,
+        `模型: ${REPORT.model}`,
+        `轮数: ${REPORT.rounds}`,
+        `区块高度: ${REPORT.summary.height}`,
+        `总交易数: ${REPORT.summary.transactions}`,
+        `最新估值: ${formatYuan(REPORT.final_price_yuan)}`
+      ];
+      entries.forEach(text => {
+        const chip = document.createElement("div");
+        chip.className = "chip";
+        chip.textContent = text;
+        chips.appendChild(chip);
+      });
+    }
+
+    function renderChart() {
+      const svg = document.getElementById("price-chart");
+      const points = REPORT.price_history.map(item => Number(item.price));
+      const labels = REPORT.price_history.map(item => item.label);
+      const width = 960;
+      const height = 420;
+      const padding = { top: 30, right: 28, bottom: 48, left: 52 };
+      const min = Math.min(...points);
+      const max = Math.max(...points);
+      const span = Math.max(0.5, max - min);
+      const stepX = (width - padding.left - padding.right) / Math.max(1, points.length - 1);
+      const project = (value, index) => {
+        const x = padding.left + index * stepX;
+        const y = padding.top + (1 - (value - min) / span) * (height - padding.top - padding.bottom);
+        return [x, y];
+      };
+      const coords = points.map((value, index) => project(value, index));
+      const polyline = coords.map(([x, y]) => `${x},${y}`).join(" ");
+      const area = `M ${coords[0][0]},${height - padding.bottom} ` + coords.map(([x, y]) => `L ${x},${y}`).join(" ") + ` L ${coords[coords.length - 1][0]},${height - padding.bottom} Z`;
+
+      let grid = "";
+      for (let i = 0; i < 5; i += 1) {
+        const y = padding.top + i * ((height - padding.top - padding.bottom) / 4);
+        const label = (max - i * (span / 4)).toFixed(2);
+        grid += `<line x1="${padding.left}" y1="${y}" x2="${width - padding.right}" y2="${y}" stroke="rgba(255,255,255,0.08)" stroke-dasharray="6 8" />`;
+        grid += `<text x="${padding.left - 10}" y="${y + 4}" fill="rgba(238,243,255,0.62)" text-anchor="end" font-size="13">${label}</text>`;
+      }
+
+      let axisLabels = "";
+      coords.forEach(([x], index) => {
+        axisLabels += `<text x="${x}" y="${height - 18}" fill="rgba(238,243,255,0.58)" text-anchor="middle" font-size="12">${labels[index]}</text>`;
+      });
+
+      let markers = "";
+      coords.forEach(([x, y], index) => {
+        markers += `<circle cx="${x}" cy="${y}" r="5.5" fill="#49d17d" stroke="#0f1116" stroke-width="2" />`;
+        markers += `<title>${labels[index]}: ¥${points[index].toFixed(2)}</title>`;
+      });
+
+      svg.innerHTML = `
+        <defs>
+          <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="rgba(73,209,125,0.42)" />
+            <stop offset="100%" stop-color="rgba(73,209,125,0.03)" />
+          </linearGradient>
+        </defs>
+        ${grid}
+        <path d="${area}" fill="url(#areaFill)" />
+        <polyline fill="none" stroke="#49d17d" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" points="${polyline}" />
+        ${markers}
+        ${axisLabels}
+      `;
+
+      const meta = document.getElementById("chart-meta");
+      const first = points[0];
+      const last = points[points.length - 1];
+      const change = last - first;
+      const pct = first === 0 ? 0 : (change / first) * 100;
+      const metaItems = [
+        ["起始估值", formatYuan(first)],
+        ["最新估值", formatYuan(last)],
+        ["阶段涨跌", `${change >= 0 ? "+" : ""}${change.toFixed(2)} / ${pct.toFixed(1)}%`],
+      ];
+      metaItems.forEach(([label, value]) => {
+        const box = document.createElement("div");
+        box.className = "meta-box";
+        box.innerHTML = `<small>${label}</small><strong>${value}</strong>`;
+        meta.appendChild(box);
+      });
+    }
+
+    function renderLogs() {
+      const list = document.getElementById("log-list");
+      const recentLogs = [...REPORT.logs].slice(-36).reverse();
+      recentLogs.forEach(entry => {
+        const item = document.createElement("article");
+        item.className = `log-item kind-${entry.kind}`;
+        item.innerHTML = `
+          <div class="topline">
+            <span>Round ${Number(entry.tick) + 1}</span>
+            <span>${entry.agent}</span>
+          </div>
+          <div>${entry.description}</div>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    renderChips();
+    renderCards();
+    renderChart();
+    renderLogs();
+  </script>
+</body>
+</html>

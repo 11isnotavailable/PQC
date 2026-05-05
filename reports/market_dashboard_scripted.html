@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PQC 多智能体市场面板</title>
+  <style>
+    :root {
+      --panel: rgba(20, 24, 34, 0.9);
+      --panel-2: rgba(16, 19, 28, 0.92);
+      --line: rgba(111, 125, 156, 0.22);
+      --text: #eef3ff;
+      --muted: #9ba9c9;
+      --accent: #49d17d;
+      --accent-2: #6fd3ff;
+      --warn: #ffb454;
+      --danger: #ff7c7c;
+      --card-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+      --radius: 22px;
+      --font-sans: "Segoe UI Variable", "Aptos", "Trebuchet MS", sans-serif;
+      --font-mono: "Cascadia Code", "Consolas", monospace;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, rgba(75, 209, 125, 0.15), transparent 28%),
+        radial-gradient(circle at 90% 20%, rgba(111, 211, 255, 0.12), transparent 24%),
+        linear-gradient(180deg, #0b0d12 0%, #10131c 100%);
+      font-family: var(--font-sans);
+    }
+    .shell {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 26px;
+    }
+    .hero, .panel, .agent-card {
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: var(--radius);
+      box-shadow: var(--card-shadow);
+      background: linear-gradient(180deg, var(--panel), var(--panel-2));
+    }
+    .hero {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 20px;
+      padding: 24px 28px;
+    }
+    .hero h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 42px); }
+    .hero p { margin: 0; color: var(--muted); max-width: 720px; line-height: 1.55; }
+    .chips { display: flex; flex-wrap: wrap; gap: 10px; align-content: flex-start; }
+    .chip {
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .grid-row {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin-bottom: 18px;
+    }
+    .agent-card {
+      position: relative;
+      overflow: hidden;
+      padding: 20px;
+      min-height: 292px;
+    }
+    .agent-card::after {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 6px;
+      background: var(--role-color, var(--accent));
+    }
+    .agent-card.bankrupt::before {
+      content: "已破产";
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255, 124, 124, 0.18);
+      color: #ffd6d6;
+      font-size: 12px;
+    }
+    .agent-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: flex-start;
+      margin-bottom: 14px;
+    }
+    .agent-name { margin: 0 0 6px; font-size: 22px; }
+    .agent-role {
+      display: inline-flex;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: rgba(255,255,255,0.08);
+      color: var(--role-color, var(--accent));
+    }
+    .agent-balance { text-align: right; }
+    .agent-balance strong {
+      display: block;
+      font-size: 30px;
+      line-height: 1;
+    }
+    .agent-balance span { color: var(--muted); font-size: 12px; }
+    .objective { margin: 0 0 14px; color: var(--muted); line-height: 1.5; font-size: 14px; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .stat {
+      padding: 12px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .stat-label { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+    .stat-value { font-family: var(--font-mono); font-size: 18px; }
+    .last-action {
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(73, 209, 125, 0.08);
+      border: 1px solid rgba(73, 209, 125, 0.12);
+      color: #d6ffe4;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .center-stage {
+      display: grid;
+      grid-template-columns: minmax(0, 1.8fr) minmax(320px, 0.95fr);
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+    .panel { padding: 20px; }
+    .panel h2 { margin: 0 0 4px; font-size: 22px; }
+    .panel p { margin: 0 0 18px; color: var(--muted); line-height: 1.5; }
+    .chart-frame {
+      width: 100%;
+      aspect-ratio: 16 / 8;
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
+      border: 1px solid rgba(255,255,255,0.06);
+      padding: 14px;
+    }
+    .chart-meta {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .meta-box {
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+    .meta-box small { display: block; color: var(--muted); margin-bottom: 6px; }
+    .meta-box strong { font-family: var(--font-mono); font-size: 18px; }
+    .log-list { display: grid; gap: 10px; max-height: 760px; overflow: auto; padding-right: 4px; }
+    .log-item {
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.035);
+      border: 1px solid rgba(255,255,255,0.05);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+    .log-item .topline {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .kind-trade { border-left: 4px solid var(--accent-2); }
+    .kind-mine { border-left: 4px solid var(--warn); }
+    .kind-cost { border-left: 4px solid var(--danger); }
+    .kind-valuation { border-left: 4px solid var(--accent); }
+    .kind-market { border-left: 4px solid #8fb2ff; }
+    .kind-capital { border-left: 4px solid #ff8cc6; }
+    .kind-bankrupt { border-left: 4px solid #ff7c7c; }
+    @media (max-width: 1060px) { .center-stage { grid-template-columns: 1fr; } }
+    @media (max-width: 860px) { .grid-row { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="hero">
+      <div>
+        <h1>PQC 多智能体市场面板</h1>
+        <p>每个智能体初始现金为 1 万元，每回合固定扣除 100 元日常开销，并且有外部资本持续买入，市场不再只是单纯转账，而是具备真实现金、投资和破产机制。</p>
+      </div>
+      <div class="chips" id="chips"></div>
+    </section>
+
+    <section class="grid-row" id="top-row"></section>
+
+    <section class="center-stage">
+      <section class="panel">
+        <h2>实时币价曲线</h2>
+        <p>价格会受到真实现金买卖、外部买盘、挖矿活跃度和破产情况影响。</p>
+        <div class="chart-frame">
+          <svg id="price-chart" viewBox="0 0 960 420" width="100%" height="100%" preserveAspectRatio="none"></svg>
+        </div>
+        <div class="chart-meta" id="chart-meta"></div>
+      </section>
+      <aside class="panel">
+        <h2>链上与市场日志</h2>
+        <p>这里汇总了转账、买卖、外部资本注入、挖矿和破产等事件。</p>
+        <div class="log-list" id="log-list"></div>
+      </aside>
+    </section>
+
+    <section class="grid-row" id="bottom-row"></section>
+  </div>
+
+  <script>
+    const REPORT = {"title": "PQC 多智能体市场面板", "mode": "scripted", "mode_label": "脚本驱动", "model": "deepseek-v4-flash", "rounds": 1, "base_price_yuan": 12.0, "final_price_yuan": 12.42, "price_history": [{"round": -1, "label": "启动", "price": 12.0}, {"round": 0, "label": "第 1 轮", "price": 12.42}], "round_history": [{"round": 0, "height": 8, "balances": {"maker_mia": 38, "holder_han": 36, "promoter_pia": 34, "miner_1": 215}, "cash_balances_yuan": {"maker_mia": 9780.0, "holder_han": 9780.0, "promoter_pia": 9780.0, "miner_1": 9900.0}, "price": 12.42, "mempool_size": 1, "event_count": 20}], "summary": {"height": 8, "blocks": 8, "transactions": 6, "mempool_size": 1, "bankrupt_agents": 0}, "economics": {"current_subsidy": 50, "next_subsidy": 50, "current_difficulty": 16.0, "halving_interval": 12, "difficulty_adjustment_interval": 4, "target_block_time_seconds": 1, "living_cost_per_round_yuan": 100.0, "bankruptcy_floor_yuan": -10000.0, "external_buy_budget_yuan": 600.0, "external_capital_strategy": "strategy_mix", "external_current_round_budget_yuan": 1800.0, "external_remaining_budget_yuan": 288.0, "external_bid_ceiling_yuan": 12.54}, "agents": [{"name": "maker_mia", "role": "trader", "role_label": "交易员", "objective": "Maximize total profit and net worth in yuan.", "prompt": "You are agent maker_mia.\nIdentity: trader in a PQC market simulation.\nYou hold both cash in yuan and PQC tokens.\nYour only goal is to maximize total profit and total net worth in yuan while avoiding bankruptcy.\nUse inspect_market, inspect_wallet, inspect_agents, buy_tokens, sell_tokens, send_transaction, and noop when useful.\nPrefer decisive investment actions when they are likely to improve profit.", "initial_balance": 28, "initial_cash_yuan": 10000.0, "balance": 38, "cash_balance_yuan": 9780.0, "net_worth_yuan": 10251.96, "sent_transactions": 0, "received_transactions": 1, "tokens_sent": 0, "tokens_received": 28, "tokens_bought": 10, "tokens_sold": 0, "fees_paid": 0, "blocks_mined": 0, "mining_rewards": 0, "power_cost_yuan": 0.0, "living_cost_yuan": 100.0, "estimated_value_yuan": 471.96, "estimated_pnl_yuan": -184.04, "net_token_change": 10, "bankrupt": false, "last_action": "maker_mia 决策: maker_mia buys 10 PQC to increase profit exposure | 计划工具: buy_tokens"}, {"name": "holder_han", "role": "trader", "role_label": "交易员", "objective": "Maximize total profit and net worth in yuan.", "prompt": "You are agent holder_han.\nIdentity: trader in a PQC market simulation.\nYou hold both cash in yuan and PQC tokens.\nYour only goal is to maximize total profit and total net worth in yuan while avoiding bankruptcy.\nUse inspect_market, inspect_wallet, inspect_agents, buy_tokens, sell_tokens, send_transaction, and noop when useful.\nPrefer decisive investment actions when they are likely to improve profit.", "initial_balance": 26, "initial_cash_yuan": 10000.0, "balance": 36, "cash_balance_yuan": 9780.0, "net_worth_yuan": 10227.12, "sent_transactions": 0, "received_transactions": 1, "tokens_sent": 0, "tokens_received": 26, "tokens_bought": 10, "tokens_sold": 0, "fees_paid": 0, "blocks_mined": 0, "mining_rewards": 0, "power_cost_yuan": 0.0, "living_cost_yuan": 100.0, "estimated_value_yuan": 447.12, "estimated_pnl_yuan": -184.88, "net_token_change": 10, "bankrupt": false, "last_action": "holder_han 决策: holder_han buys 10 PQC to increase profit exposure | 计划工具: buy_tokens"}, {"name": "promoter_pia", "role": "trader", "role_label": "交易员", "objective": "Maximize total profit and net worth in yuan.", "prompt": "You are agent promoter_pia.\nIdentity: trader in a PQC market simulation.\nYou hold both cash in yuan and PQC tokens.\nYour only goal is to maximize total profit and total net worth in yuan while avoiding bankruptcy.\nUse inspect_market, inspect_wallet, inspect_agents, buy_tokens, sell_tokens, send_transaction, and noop when useful.\nPrefer decisive investment actions when they are likely to improve profit.", "initial_balance": 24, "initial_cash_yuan": 10000.0, "balance": 34, "cash_balance_yuan": 9780.0, "net_worth_yuan": 10202.28, "sent_transactions": 0, "received_transactions": 1, "tokens_sent": 0, "tokens_received": 24, "tokens_bought": 10, "tokens_sold": 0, "fees_paid": 0, "blocks_mined": 0, "mining_rewards": 0, "power_cost_yuan": 0.0, "living_cost_yuan": 100.0, "estimated_value_yuan": 422.28, "estimated_pnl_yuan": -185.72, "net_token_change": 10, "bankrupt": false, "last_action": "promoter_pia 决策: promoter_pia buys 10 PQC to increase profit exposure | 计划工具: buy_tokens"}, {"name": "miner_1", "role": "miner", "role_label": "矿工", "objective": "每一轮都挖矿并确认待处理交易。", "prompt": "", "initial_balance": 162, "initial_cash_yuan": 10000.0, "balance": 215, "cash_balance_yuan": 9900.0, "net_worth_yuan": 12570.3, "sent_transactions": 3, "received_transactions": 0, "tokens_sent": 78, "tokens_received": 0, "tokens_bought": 0, "tokens_sold": 0, "fees_paid": 3, "blocks_mined": 8, "mining_rewards": 257, "power_cost_yuan": 2800.0, "living_cost_yuan": 100.0, "estimated_value_yuan": 2670.3, "estimated_pnl_yuan": -2273.7, "net_token_change": 53, "bankrupt": false, "last_action": "miner_1 决策: miner_1 mines the current mempool | 计划工具: mine_block"}], "logs": [{"tick": 0, "kind": "cost", "agent": "holder_han", "description": "holder_han 日常开销 ¥100.00"}, {"tick": 0, "kind": "decision", "agent": "holder_han", "description": "holder_han 决策: holder_han buys 10 PQC to increase profit exposure | 计划工具: buy_tokens"}, {"tick": 0, "kind": "market", "agent": "holder_han", "description": "holder_han 用现金买入 10 PQC，成交价 ¥12.00"}, {"tick": 0, "kind": "tool", "agent": "holder_han", "description": "holder_han 执行 buy_tokens 成功"}, {"tick": 0, "kind": "cost", "agent": "maker_mia", "description": "maker_mia 日常开销 ¥100.00"}, {"tick": 0, "kind": "decision", "agent": "maker_mia", "description": "maker_mia 决策: maker_mia buys 10 PQC to increase profit exposure | 计划工具: buy_tokens"}, {"tick": 0, "kind": "market", "agent": "maker_mia", "description": "maker_mia 用现金买入 10 PQC，成交价 ¥12.00"}, {"tick": 0, "kind": "tool", "agent": "maker_mia", "description": "maker_mia 执行 buy_tokens 成功"}, {"tick": 0, "kind": "cost", "agent": "miner_1", "description": "miner_1 日常开销 ¥100.00"}, {"tick": 0, "kind": "decision", "agent": "miner_1", "description": "miner_1 决策: miner_1 mines the current mempool | 计划工具: mine_block"}, {"tick": 0, "kind": "mine", "agent": "miner_1", "description": "挖出区块 H1，区块奖励 0 PQC，难度 x1.0，耗电成本 ¥80.00"}, {"tick": 0, "kind": "mine", "agent": "miner_1", "description": "挖出区块 H2，区块奖励 0 PQC，难度 x1.0，耗电成本 ¥80.00"}, {"tick": 0, "kind": "mine", "agent": "miner_1", "description": "挖出区块 H3，区块奖励 0 PQC，难度 x1.0，耗电成本 ¥80.00"}, {"tick": 0, "kind": "mine", "agent": "miner_1", "description": "挖出区块 H4，区块奖励 51 PQC，难度 x4.0，耗电成本 ¥320.00"}, {"tick": 0, "kind": "mine", "agent": "miner_1", "description": "挖出区块 H5，区块奖励 51 PQC，难度 x4.0，耗电成本 ¥320.00"}, {"tick": 0, "kind": "mine", "agent": "miner_1", "description": "挖出区块 H6，区块奖励 51 PQC，难度 x4.0，耗电成本 ¥320.00"}, {"tick": 0, "kind": "mine", "agent": "miner_1", "description": "挖出区块 H7，区块奖励 51 PQC，难度 x4.0，耗电成本 ¥320.00"}, {"tick": 0, "kind": "mine", "agent": "miner_1", "description": "挖出区块 H8，区块奖励 53 PQC，难度 x16.0，耗电成本 ¥1280.00"}, {"tick": 0, "kind": "tool", "agent": "miner_1", "description": "miner_1 执行 mine_block 成功"}, {"tick": 0, "kind": "trade", "agent": "miner_1", "description": "miner_1 -> maker_mia 28 PQC（手续费 1）"}, {"tick": 0, "kind": "trade", "agent": "miner_1", "description": "miner_1 -> holder_han 26 PQC（手续费 1）"}, {"tick": 0, "kind": "trade", "agent": "miner_1", "description": "miner_1 -> promoter_pia 24 PQC（手续费 1）"}, {"tick": 0, "kind": "cost", "agent": "promoter_pia", "description": "promoter_pia 日常开销 ¥100.00"}, {"tick": 0, "kind": "decision", "agent": "promoter_pia", "description": "promoter_pia 决策: promoter_pia buys 10 PQC to increase profit exposure | 计划工具: buy_tokens"}, {"tick": 0, "kind": "market", "agent": "promoter_pia", "description": "promoter_pia 用现金买入 10 PQC，成交价 ¥12.00"}, {"tick": 0, "kind": "tool", "agent": "promoter_pia", "description": "promoter_pia 执行 buy_tokens 成功"}, {"tick": 0, "kind": "capital", "agent": "外部资本", "description": "外部资本预算信号 fixed_dca: ¥600.00 | fixed recurring inflow"}, {"tick": 0, "kind": "capital", "agent": "外部资本", "description": "外部资本预算信号 dip_buyer: ¥600.00 | price near recent reference"}, {"tick": 0, "kind": "capital", "agent": "外部资本", "description": "外部资本预算信号 trend_follower: ¥600.00 | flat momentum"}, {"tick": 0, "kind": "capital", "agent": "外部资本", "description": "外部资本[fixed_dca+dip_buyer+trend_follower]买入 126 PQC，注入现金 ¥1512.00"}, {"tick": 0, "kind": "valuation", "agent": "市场", "description": "币价更新到 ¥12.42，净资金流信号 1872.00"}]};
+
+    function roleColor(role) {
+      const normalized = String(role || "").toLowerCase();
+      if (normalized.includes("miner")) return "#ffb454";
+      if (normalized.includes("maker")) return "#49d17d";
+      if (normalized.includes("holder")) return "#8fb2ff";
+      if (normalized.includes("promoter")) return "#ff8cc6";
+      return "#6fd3ff";
+    }
+
+    function tickLabel(tick) {
+      return Number(tick) < 0 ? "启动" : `第 ${Number(tick) + 1} 轮`;
+    }
+
+    function formatYuan(value) {
+      const sign = Number(value) < 0 ? "-" : "";
+      return sign + "¥" + Math.abs(Number(value)).toFixed(2);
+    }
+
+    function formatToken(value) {
+      const prefix = Number(value) > 0 ? "+" : "";
+      return prefix + value + " PQC";
+    }
+
+    function buildCard(agent) {
+      const card = document.createElement("article");
+      card.className = `agent-card${agent.bankrupt ? " bankrupt" : ""}`;
+      card.style.setProperty("--role-color", roleColor(agent.role));
+      card.innerHTML = `
+        <div class="agent-head">
+          <div>
+            <h3 class="agent-name">${agent.name}</h3>
+            <span class="agent-role">${agent.role_label || agent.role}</span>
+          </div>
+          <div class="agent-balance">
+            <strong>${agent.balance} PQC</strong>
+            <span>当前持币</span>
+          </div>
+        </div>
+        <p class="objective">${agent.objective}</p>
+        <div class="stats">
+          <div class="stat"><div class="stat-label">现金余额</div><div class="stat-value">${formatYuan(agent.cash_balance_yuan)}</div></div>
+          <div class="stat"><div class="stat-label">总资产</div><div class="stat-value">${formatYuan(agent.net_worth_yuan)}</div></div>
+          <div class="stat"><div class="stat-label">持币估值</div><div class="stat-value">${formatYuan(agent.estimated_value_yuan)}</div></div>
+          <div class="stat"><div class="stat-label">累计收益</div><div class="stat-value">${formatYuan(agent.estimated_pnl_yuan)}</div></div>
+          <div class="stat"><div class="stat-label">耗电成本</div><div class="stat-value">${formatYuan(agent.power_cost_yuan)}</div></div>
+          <div class="stat"><div class="stat-label">日常开销</div><div class="stat-value">${formatYuan(agent.living_cost_yuan)}</div></div>
+        </div>
+        <div class="last-action">${agent.last_action}</div>
+      `;
+      return card;
+    }
+
+    function renderCards() {
+      const agents = [...REPORT.agents];
+      const top = agents.slice(0, Math.ceil(agents.length / 2));
+      const bottom = agents.slice(Math.ceil(agents.length / 2));
+      const topRow = document.getElementById("top-row");
+      const bottomRow = document.getElementById("bottom-row");
+      top.forEach(agent => topRow.appendChild(buildCard(agent)));
+      bottom.forEach(agent => bottomRow.appendChild(buildCard(agent)));
+    }
+
+    function renderChips() {
+      const chips = document.getElementById("chips");
+      const entries = [
+        `模式: ${REPORT.mode_label || REPORT.mode}`,
+        `模型: ${REPORT.model}`,
+        `轮数: ${REPORT.rounds}`,
+        `区块高度: ${REPORT.summary.height}`,
+        `总交易数: ${REPORT.summary.transactions}`,
+        `当前难度: x${Number(REPORT.economics.current_difficulty || 1).toFixed(2)}`,
+        `下一块奖励: ${REPORT.economics.next_subsidy} PQC`,
+        `外部买盘: 每轮 ¥${Number(REPORT.economics.external_buy_budget_yuan).toFixed(2)}`,
+        `外部风格: ${REPORT.economics.external_capital_strategy}`,
+        `破产数: ${REPORT.summary.bankrupt_agents}`,
+        `最新估值: ${formatYuan(REPORT.final_price_yuan)}`
+      ];
+      entries.forEach(text => {
+        const chip = document.createElement("div");
+        chip.className = "chip";
+        chip.textContent = text;
+        chips.appendChild(chip);
+      });
+    }
+
+    function renderChart() {
+      const svg = document.getElementById("price-chart");
+      const points = REPORT.price_history.map(item => Number(item.price));
+      const labels = REPORT.price_history.map(item => item.label);
+      const width = 960;
+      const height = 420;
+      const padding = { top: 30, right: 28, bottom: 48, left: 52 };
+      const min = Math.min(...points);
+      const max = Math.max(...points);
+      const span = Math.max(0.5, max - min);
+      const stepX = (width - padding.left - padding.right) / Math.max(1, points.length - 1);
+      const coords = points.map((value, index) => {
+        const x = padding.left + index * stepX;
+        const y = padding.top + (1 - (value - min) / span) * (height - padding.top - padding.bottom);
+        return [x, y];
+      });
+      const polyline = coords.map(([x, y]) => `${x},${y}`).join(" ");
+      const area = `M ${coords[0][0]},${height - padding.bottom} ` + coords.map(([x, y]) => `L ${x},${y}`).join(" ") + ` L ${coords[coords.length - 1][0]},${height - padding.bottom} Z`;
+      let grid = "";
+      for (let i = 0; i < 5; i += 1) {
+        const y = padding.top + i * ((height - padding.top - padding.bottom) / 4);
+        const label = (max - i * (span / 4)).toFixed(2);
+        grid += `<line x1="${padding.left}" y1="${y}" x2="${width - padding.right}" y2="${y}" stroke="rgba(255,255,255,0.08)" stroke-dasharray="6 8" />`;
+        grid += `<text x="${padding.left - 10}" y="${y + 4}" fill="rgba(238,243,255,0.62)" text-anchor="end" font-size="13">${label}</text>`;
+      }
+      let axisLabels = "";
+      coords.forEach(([x], index) => {
+        axisLabels += `<text x="${x}" y="${height - 18}" fill="rgba(238,243,255,0.58)" text-anchor="middle" font-size="12">${labels[index]}</text>`;
+      });
+      let markers = "";
+      coords.forEach(([x, y], index) => {
+        markers += `<circle cx="${x}" cy="${y}" r="5.5" fill="#49d17d" stroke="#0f1116" stroke-width="2" />`;
+        markers += `<title>${labels[index]}: ¥${points[index].toFixed(2)}</title>`;
+      });
+      svg.innerHTML = `
+        <defs>
+          <linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="rgba(73,209,125,0.42)" />
+            <stop offset="100%" stop-color="rgba(73,209,125,0.03)" />
+          </linearGradient>
+        </defs>
+        ${grid}
+        <path d="${area}" fill="url(#areaFill)" />
+        <polyline fill="none" stroke="#49d17d" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" points="${polyline}" />
+        ${markers}
+        ${axisLabels}
+      `;
+      const meta = document.getElementById("chart-meta");
+      const first = points[0];
+      const last = points[points.length - 1];
+      const change = last - first;
+      const pct = first === 0 ? 0 : (change / first) * 100;
+      const metaItems = [
+        ["起始估值", formatYuan(first)],
+        ["最新估值", formatYuan(last)],
+        ["阶段涨跌", `${change >= 0 ? "+" : ""}${change.toFixed(2)} / ${pct.toFixed(1)}%`],
+      ];
+      metaItems.forEach(([label, value]) => {
+        const box = document.createElement("div");
+        box.className = "meta-box";
+        box.innerHTML = `<small>${label}</small><strong>${value}</strong>`;
+        meta.appendChild(box);
+      });
+    }
+
+    function renderLogs() {
+      const list = document.getElementById("log-list");
+      const recentLogs = [...REPORT.logs].slice(-36).reverse();
+      recentLogs.forEach(entry => {
+        const item = document.createElement("article");
+        item.className = `log-item kind-${entry.kind}`;
+        item.innerHTML = `
+          <div class="topline">
+            <span>${tickLabel(entry.tick)}</span>
+            <span>${entry.agent}</span>
+          </div>
+          <div>${entry.description}</div>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    renderChips();
+    renderCards();
+    renderChart();
+    renderLogs();
+  </script>
+</body>
+</html>
