@@ -1,65 +1,136 @@
 # PQ-BitEdu
 
-一个教学型、类比特币、抗量子签名可插拔的区块链基座实现。
+一个用于课程展示的教学型区块链项目，主题是：
 
-## 当前状态
+- Bitcoin-like 链基座
+- 抗量子签名
+- SOIBS 交易授权优化
+- 多智能体市场模拟
+- 轻量多节点攻击演示
 
-已完成的基座能力：
+## 当前已经实现
+
+### 链基座
 
 - UTXO 模型
-- 交易输入输出与手续费
+- 交易输入 / 输出
 - `pubkey_hash` 锁定
-- SOIBS 同拥有者输入打包签名
-- 区块、Merkle Root、PoW
-- 最长链 / 累计工作量优先
 - coinbase 奖励
-- 单机节点与最小演示流程
+- Merkle Root
+- PoW 挖矿
+- 最长累计工作量选链
+- 区块奖励减半
+- 难度调整
 
-签名层设计为可插拔：
+### 抗量子签名
 
-- 默认提供一个**纯 Python 手写的教学版 `ML-DSA-44` 风格后端**
-- 它保留了模格矩阵、短秘密向量、Fiat-Shamir 挑战和有界签名向量这些核心逻辑
-- 同时保留 `Merkle-Lamport` 作为额外的后量子备用方案，方便做对照实验
+- 项目默认签名后端是项目内置的教学型 `ML-DSA` 风格实现
+- 默认标识为 `ml-dsa-44`
+- 另带一个 `Merkle-Lamport` 后备后量子签名方案
 
-说明：
+注意：
 
-- 当前 `ml-dsa-44` 是**教学实现**，用于展示 ML-DSA 的核心签名逻辑，而不是严格按 FIPS 204 位级兼容的工业实现
-- 如果后续你还想切回 `liboqs` 之类的标准库后端，接口层已经是可插拔的
+- 当前不是 `liboqs` 的工业级 FIPS 204 落地
+- 当前是为了课程展示而写的可解释教学实现
 
-授权组织支持两种模式：
+### SOIBS
 
-- `soibs`：同拥有者输入打包签名
-- `per_input`：逐输入见证基线模式，便于做实验对比
+- 支持 `per_input` 基线模式
+- 支持 `SOIBS` 合并同拥有者输入签名
+- 可以直接做交易体积、签名大小、验签次数对照
 
-## 多智能体环境
+### 多智能体市场模拟
 
-项目现在已经包含一个本地多智能体仿真层：
+- 单机多智能体环境
+- 现金账户 + 持币账户
+- 外部资本买入机制
+- 实时市场页面
+- DeepSeek 与 Gemini 双厂商对照
 
-- `MultiAgentEnvironment`：统一管理区块链、节点、钱包、事件流和回合推进
-- `AgentToolbox`：向 Agent 暴露 `inspect_chain`、`inspect_wallet`、`send_transaction`、`mine_block` 等工具
-- `scripted controllers`：提供本地可跑的矿工/交易者策略，方便在不接真实模型时先调系统
-- `ProviderConfig`：预留 DeepSeek / Gemini 的模型配置位，下一阶段只需补真实 API adapter
+### 已接入真实 API
 
-当前边界：
+当前项目已经接入真实模型 API，不是只做本地脚本假人：
 
-- 这一层已经能做**单机多智能体仿真**
-- 还没有接入真实 DeepSeek / Gemini API
-- 还没有做多进程、多节点网络广播或线上部署
+- DeepSeek API
+- Gemini API
 
-## 运行多智能体 demo
+对应适配层在：
+
+- `pq_bitedu/agentic/providers.py`
+
+Hosted 市场模拟入口在：
+
+- `pq_bitedu/market_simulation.py`
+- `pq_bitedu/live_dashboard.py`
+
+### 攻击演示
+
+- 双花攻击演示
+- 51% 私链重组演示
+- 独立攻击演示页面
+
+## 页面入口
+
+### 主市场页面
+
+- `reports/market_dashboard_hosted.html`
+- `reports/market_dashboard_scripted.html`
+
+### 攻击演示页面
+
+- `reports/attack_dashboard.html`
+
+### 三方案对照页面
+
+- `reports/quantum_dashboard.html`
+
+## 运行方式
+
+### 运行测试
 
 ```powershell
-python -m pq_bitedu.agent_demo
+python -m unittest discover -s tests -v
 ```
 
-## 运行 demo
+### 运行基础链 demo
 
 ```powershell
 python -m pq_bitedu.demo
 ```
 
-## 运行测试
+### 运行多智能体实时市场
+
+离线 scripted 版：
 
 ```powershell
-python -m unittest discover -s tests -v
+python -m pq_bitedu.live_dashboard --mode scripted --autostart
 ```
+
+真实 hosted 版：
+
+```powershell
+python -m pq_bitedu.live_dashboard --mode hosted --model deepseek-v4-flash --autostart
+```
+
+### 生成攻击演示页
+
+```powershell
+python -m pq_bitedu.attack_dashboard --output reports/attack_dashboard.html
+```
+
+### 生成三方案对照页
+
+```powershell
+python -m pq_bitedu.quantum_dashboard --output reports/quantum_dashboard.html
+```
+
+## 环境变量
+
+项目会从 `.env` 读取 API key。
+
+常用项：
+
+- `DEEPSEEK_API_KEY`
+- `GEMINI_API_KEY`
+
+`.env` 不应提交到仓库。
